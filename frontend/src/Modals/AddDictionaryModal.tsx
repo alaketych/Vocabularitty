@@ -1,15 +1,15 @@
 import { useId, useState, type RefObject } from 'react';
 import { BookOpen } from 'lucide-react';
 import Modal from './Modal';
-import { placeholderLanguages, type LanguageOption } from '../../data/placeholderLanguages';
+import type { LanguageSummary } from '../models/_index';
 
 type Props = {
   dialogRef: RefObject<HTMLDialogElement | null>;
-  languages?: readonly LanguageOption[];
-  onCreate: (title: string, language: LanguageOption) => void;
+  languages: readonly LanguageSummary[];
+  onCreate: (title: string, language: LanguageSummary) => void;
 };
 
-export default function AddDictionaryModal({ dialogRef, languages = placeholderLanguages, onCreate }: Props) {
+export default function AddDictionaryModal({ dialogRef, languages, onCreate }: Props) {
   const id = useId();
   const [title, setTitle] = useState('');
   const [languageId, setLanguageId] = useState('');

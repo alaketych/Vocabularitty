@@ -1,16 +1,7 @@
-import type { ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import EmptyLibrary from '../EmptyLibrary';
-import type { WordSummary } from './Word';
+import type { DictionarySummary } from '../../models/_index';
 import DictionaryPreview from './DictionaryPreview';
-
-export type DictionarySummary = {
-    id: string;
-    dictionary_name: string;
-    language_id: string;
-    icon?: ReactNode;
-    words?: readonly WordSummary[];
-};
 
 type Props = {
     dictionaries: readonly DictionarySummary[];

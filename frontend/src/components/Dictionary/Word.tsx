@@ -1,13 +1,5 @@
 import { Trash2 } from 'lucide-react';
-
-export type WordSummary = {
-  id: string;
-  original_word: string;
-  original_transcriptioned_word?: string | null;
-  translated_word: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import type { WordSummary } from '../../models/_index'
 
 type Props = { word: WordSummary } & (
   | { variant?: 'preview'; onDelete?: never }
