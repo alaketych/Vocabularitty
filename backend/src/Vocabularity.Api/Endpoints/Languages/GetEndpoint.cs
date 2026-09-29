@@ -12,7 +12,7 @@ public sealed class GetEndpoint(LanguageService languageService)
         if (Vocabularity.Api.Configuration.DemoMode.Enabled(Resolve<IWebHostEnvironment>(), Resolve<IConfiguration>())) AllowAnonymous();
         Get("/language/{id}");
         Description(builder => builder
-            .WithTags("Language")
+            .WithTags("Languages")
             .Produces<LanguageResponse>(200));
     }
 

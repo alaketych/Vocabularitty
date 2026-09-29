@@ -1,12 +1,19 @@
 import { BookOpen } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import AddDictionaryModal from '../components/Modals/AddDictionaryModal';
-import DeleteDictionaryModal from '../components/Modals/DeleteDictionaryModal';
-import DictionaryList, { type DictionarySummary } from '../components/Dictionary/DictionaryList';
+import AddDictionaryModal from '../Modals/AddDictionaryModal';
+import DeleteDictionaryModal from '../Modals/DeleteDictionaryModal';
+import DictionaryList from '../components/Dictionary/DictionaryList';
 
-type Props = { dictionaries: readonly DictionarySummary[]; onCreate: (dictionary: DictionarySummary) => void; onDelete: (id: string) => void };
+import type { LanguageSummary, DictionarySummary } from '../models/_index';
 
-export default function Library({ dictionaries, onCreate, onDelete }: Props) {
+type Props = {
+  languages: readonly LanguageSummary[];
+  dictionaries: readonly DictionarySummary[]; 
+  onCreate: (dictionary: DictionarySummary) => void; 
+  onDelete: (id: string) => void 
+};
+
+export default function Library({ languages, dictionaries, onCreate, onDelete }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
   const [selectedDictionary, setSelectedDictionary] = useState<DictionarySummary | null>(null);
@@ -29,7 +36,10 @@ export default function Library({ dictionaries, onCreate, onDelete }: Props) {
         <DictionaryList dictionaries={dictionaries}
           onAdd={openModal} onDelete={setSelectedDictionary} />
       </section>
-      <AddDictionaryModal dialogRef={dialogRef} onCreate={(title, language) => {
+      <AddDictionaryModal 
+        dialogRef={dialogRef} 
+        languages={languages} 
+        onCreate={(title, language) => {
         onCreate({
           id: crypto.randomUUID(),
           dictionary_name: title,
@@ -38,7 +48,8 @@ export default function Library({ dictionaries, onCreate, onDelete }: Props) {
           words: [],
         });
       }} />
-      <DeleteDictionaryModal dialogRef={deleteDialogRef}
+      <DeleteDictionaryModal 
+        dialogRef={deleteDialogRef}
         dictionaryTitle={selectedDictionary?.dictionary_name ?? ''}
         onClose={() => setSelectedDictionary(null)}
         onConfirm={() => {

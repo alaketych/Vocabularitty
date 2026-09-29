@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react';
 import { BookOpen, Trash2 } from 'lucide-react';
 import { Word } from './_index';
-import type { WordSummary } from './Word';
+import type { WordSummary } from '../../models/_index';
 import { Link } from 'react-router-dom';
 
 type Props = {

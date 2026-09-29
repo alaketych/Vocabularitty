@@ -10,7 +10,7 @@ public sealed class DeleteEndpoint(DictionaryService dictionaryService)
     public override void Configure()
     {
         Delete("/dictionary/{id}");
-        Description(builder => builder.Produces(204));
+        Description(builder => builder.WithTags("Dictionaries").Produces(204));
     }
 
     public override async Task HandleAsync(EmptyRequest request, CancellationToken cancellationToken)

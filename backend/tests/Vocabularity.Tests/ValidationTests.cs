@@ -24,8 +24,8 @@ public sealed partial class ApiTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await Body(response);
-        Assert.Equal(400, problem.Value<int>("status"));
-        Assert.Contains(expectedField, problem["errors"]!.ToString());
+        Assert.Single(problem.Properties());
+        Assert.Contains(expectedField, problem["ErrorMessage"]!.ToString());
     }
 
     [Theory]
@@ -51,7 +51,7 @@ public sealed partial class ApiTests
         using var client = app.Start();
         Authorize(client, await Register(client, "validator@example.com"));
 
-        var created = await Body(await client.PostAsync(
+        var created = await CreatedResource(client, await client.PostAsync(
             "/dictionary", Json(new { dictionary_name = "English", language_id = "en" })));
         var dictionaryUrl = $"/dictionary/{created["id"]}";
         var wordsUrl = dictionaryUrl + "/word";
@@ -72,7 +72,7 @@ public sealed partial class ApiTests
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
-        var word = await Body(await client.PostAsync(
+        var word = await CreatedResource(client, await client.PostAsync(
             wordsUrl, Json(new { original_word = "cat", translated_word = "кіт" })));
         var invalidUpdate = await client.PutAsync(
             $"{wordsUrl}/{word["id"]}", Json(new { original_word = "cat", translated_word = "" }));
@@ -94,11 +94,11 @@ public sealed partial class ApiTests
         {
             var get = paths[path]!["get"]!;
             Assert.Null(get["requestBody"]);
-            Assert.DoesNotContain(get["parameters"] ?? new JArray(), parameter => (string?)parameter["in"] == "query");
+            Assert.Equal(2, (get["parameters"] ?? new JArray()).Count(parameter => (string?)parameter["in"] == "query"));
         }
         Assert.NotNull(paths["/languages"]!["get"]);
         Assert.Null(paths["/languages"]!["get"]!["requestBody"]);
-        Assert.Empty(paths["/languages"]!["get"]!["parameters"] ?? new JArray());
+        Assert.Equal(2, paths["/languages"]!["get"]!["parameters"]!.Count());
         Assert.NotNull(paths["/user/activities"]!["get"]);
         Assert.NotNull(paths["/users"]!["get"]);
         Assert.NotNull(paths["/user/{id}/dictionaries"]!["get"]);

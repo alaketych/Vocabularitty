@@ -8,12 +8,13 @@ namespace Vocabularity.Service.Language;
 public sealed class LanguageService(IVocabularityDbContext database)
 {
     public async Task<IReadOnlyList<LanguageResponse>> ListAsync(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, int pageNumber = 1, int pageSize = 12)
     {
         return await database.Languages
             .AsNoTracking()
             .OrderBy(language => language.Name)
             .ThenBy(language => language.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize)
             .Select(language => new LanguageResponse(
                 language.Id, language.Name, language.OriginalName, language.Icon))
             .ToListAsync(cancellationToken);

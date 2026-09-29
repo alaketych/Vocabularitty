@@ -9,6 +9,8 @@ public static class ApiDocumentation
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
+            options.OperationFilter<PaginationDocumentation>();
+            options.OperationFilter<OperationResponseDocumentation>();
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "Vocabularity API",

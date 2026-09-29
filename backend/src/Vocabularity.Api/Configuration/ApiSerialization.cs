@@ -10,7 +10,7 @@ public static class ApiSerialization
     private static readonly JsonSerializerSettings Settings = new()
     {
         MissingMemberHandling = MissingMemberHandling.Error,
-        ContractResolver = new CamelCasePropertyNamesContractResolver()
+        ContractResolver = new DefaultContractResolver { NamingStrategy = new CamelCaseNamingStrategy { OverrideSpecifiedNames = false } }
     };
 
     public static void Configure(Config config)
@@ -38,7 +38,9 @@ public static class ApiSerialization
             return response.WriteAsync(JsonConvert.SerializeObject(body, Settings), cancellationToken);
         };
 
-        config.Errors.UseProblemDetails();
+        config.Errors.ProducesMetadataType = typeof(ErrorResponse);
+        config.Errors.ResponseBuilder = (failures, context, _) =>
+            OperationResponse.Failure(context, string.Join(" ", failures.Select(failure => failure.PropertyName + ": " + failure.ErrorMessage).Distinct()));
     }
 }
 

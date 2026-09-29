@@ -11,7 +11,7 @@ public sealed class GetUserEndpoint(AuthService authService)
     {
         if (Vocabularity.Api.Configuration.DemoMode.Enabled(Resolve<IWebHostEnvironment>(), Resolve<IConfiguration>())) AllowAnonymous();
         Get("/user/{id}");
-        Description(builder => builder.Produces<UserResponse>(200));
+        Description(builder => builder.WithTags("Users").Produces<UserResponse>(200));
     }
 
     public override async Task HandleAsync(EmptyRequest request, CancellationToken cancellationToken)

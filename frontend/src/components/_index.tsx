@@ -3,5 +3,10 @@ export { default as Spinner } from './Spinner'
 export { default as Sidebar } from './Sidebar'
 export { default as EmptyLibrary} from './EmptyLibrary'
 export { default as Notification } from './Notification'
-export { Modal, AddDictionaryModal } from './Modals/_index'
+export { default as Pagination } from './Pagination'
+export { 
+    Modal, 
+    DeleteWordModal,
+    AddDictionaryModal, 
+    DeleteDictionaryModal } from '../Modals/_index'
 export { Word, DictionaryList, DictionaryPreview } from './Dictionary/_index'

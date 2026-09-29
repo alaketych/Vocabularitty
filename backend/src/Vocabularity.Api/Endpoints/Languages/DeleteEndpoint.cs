@@ -11,7 +11,7 @@ public sealed class DeleteEndpoint(LanguageService languageService)
     {
         Delete("/language/{id}");
         Description(builder => builder
-            .WithTags("Language")
+            .WithTags("Languages")
             .Produces(204));
     }
 

@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BookOpen, Trash2, Pencil } from 'lucide-react';
-import type { DictionarySummary } from '../components/Dictionary/DictionaryList';
-import Word, { type WordSummary } from '../components/Dictionary/Word';
-import Modal from '../components/Modals/Modal';
+import { Word } from '../components/Dictionary/_index'
+import Modal from '../Modals/Modal';
+import { WordSummary, DictionarySummary } from '../models/_index'
 
 type Props = {
   onCreate: (dictionaryId: string, word: WordSummary) => void;

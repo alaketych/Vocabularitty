@@ -11,7 +11,7 @@ public sealed class GetEndpoint(DictionaryService dictionaryService)
     {
         if (Vocabularity.Api.Configuration.DemoMode.Enabled(Resolve<IWebHostEnvironment>(), Resolve<IConfiguration>())) AllowAnonymous();
         Get("/dictionary/{id}/word/{wordId}");
-        Description(builder => builder.Produces<WordResponse>(200));
+        Description(builder => builder.WithTags("Words").Produces<WordResponse>(200));
     }
 
     public override async Task HandleAsync(EmptyRequest request, CancellationToken cancellationToken)

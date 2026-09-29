@@ -25,7 +25,7 @@ The four application projects compile into **one deployed API monolith**. The AP
 
 For example, follow `Endpoints/Dictionaries/CreateEndpoint.cs` → `DictionaryValidator.cs` → `Service/Dictionary/DictionaryService.cs` to see a dictionary request validated and saved. All twenty-one API operations use FastEndpoints; there are no MVC controllers.
 
-FastEndpoints 8.3.0 and FluentValidation 12.1.1 are pinned. The Newtonsoft.Json request/response adapter preserves the existing snake_case contract and rejects unknown fields. Validation failures return HTTP 400 Problem Details with field errors. See [FastEndpoints validation documentation](https://fast-endpoints.com/docs/validation) for the validator integration.
+FastEndpoints 8.3.0 and FluentValidation 12.1.1 are pinned. The Newtonsoft.Json request/response adapter preserves the existing snake_case contract and rejects unknown fields. Validation failures return HTTP 400 with a readable validation message. See [FastEndpoints validation documentation](https://fast-endpoints.com/docs/validation) for the validator integration.
 
 ## Prerequisites
 
@@ -111,21 +111,21 @@ All JSON model properties use Newtonsoft.Json and explicit snake_case attributes
 | --- | --- | --- |
 | POST | /user/register | 201 with JWT and user |
 | POST | /user/login | 200 with JWT and user |
-| GET | /users | Administrator-only full user list |
+| GET | /users | Administrator-only paginated user list |
 | GET | /user/{id} | Own profile; administrators can view any user |
 | GET | /user/{id}/dictionaries | Own dictionaries; administrators can view any user's dictionaries |
 | GET | /dictionaries | Own dictionaries for User; all dictionaries for Administrator |
-| POST | /dictionary | 201 with dictionary and Location |
+| POST | /dictionary | 201 with operation result and Location |
 | GET / PUT / DELETE | /dictionary/{id} | Read / replace / delete |
 | PUT | /dictionary/order | Save the signed-in user’s complete dictionary order |
-| GET | /dictionary/{id}/words | List all words |
+| GET | /dictionary/{id}/words | List words (paginated) |
 | POST | /dictionary/{id}/word | Create a word |
 | GET / PUT / DELETE | /dictionary/{id}/word/{wordId} | Read / replace / delete word |
-| GET | /languages | List all shared languages; no parameters or request body |
+| GET | /languages | List shared languages (paginated) |
 | POST | /language | Create a shared language |
 | GET / PUT / DELETE | /language/{id} | Read / replace / delete shared language |
 
-Languages are a shared catalog: any authenticated user can read and manage them. There is no per-user ownership for languages. Both names are required and limited to 100 characters; `name` is the English label and `original_name` is the native label. The API validates presence and length; choosing the correct English translation is the caller's responsibility. The optional `icon` holds a flag emoji or image URL (up to 2,048 characters). Omitting it on PUT clears it. Language lists return the full catalog.
+Languages are a shared catalog: any authenticated user can read and manage them. There is no per-user ownership for languages. Both names are required and limited to 100 characters; `name` is the English label and `original_name` is the native label. The API validates presence and length; choosing the correct English translation is the caller's responsibility. The optional `icon` holds a flag emoji or image URL (up to 2,048 characters). Omitting it on PUT clears it. Language lists use the shared pagination wrapper.
 
 Example body for `POST /language`:
 
@@ -145,7 +145,7 @@ dotnet ef database update --project src/Vocabularity.Infrastructure --startup-pr
 
 Language IDs are generated UUID strings. This catalog is currently independent of the existing dictionary `language_id` language tags (`en`, `uk`, etc.); this migration does not change existing dictionaries.
 
-Lists return all accessible records without pagination or a request body. PUT replaces editable fields; omitting an optional transcription clears it. DELETE returns 204; deleting a dictionary cascades to its words.
+Lists use optional pageNumber (default 1) and pageSize (default 12, maximum 100) query parameters, with no request body. PUT replaces editable fields; omitting an optional transcription clears it. DELETE returns 204; deleting a dictionary cascades to its words.
 
 ### Saved dictionary order
 
@@ -163,7 +163,7 @@ Content-Type: application/json
 }
 ```
 
-Success returns 204. Send every current dictionary ID exactly once, including dictionaries outside the currently displayed page. Duplicate IDs, missing JSON fields, and blank IDs return 400. An incomplete, stale, unknown, or foreign set of IDs returns 409 without saving any changes. Refresh the full list before retrying. An empty array is valid only when the user has no dictionaries. Ownership comes from JWT; ordinary create/update requests cannot set `position`.
+Success returns 200 with an operation result. Send every current dictionary ID exactly once, including dictionaries outside the currently displayed page. Duplicate IDs, missing JSON fields, and blank IDs return 400. An incomplete, stale, unknown, or foreign set of IDs returns 409 without saving any changes. Refresh the full list before retrying. An empty array is valid only when the user has no dictionaries. Ownership comes from JWT; ordinary create/update requests cannot set `position`.
 
 Ordering and creation use serializable transactions. Reorders are saved atomically, with later successful requests taking precedence. Concurrent database deadlocks return 409 so the client can refresh and retry.
 
@@ -177,7 +177,7 @@ The roles are `User` and `Administrator`. All registrations and all existing acc
 
 Users can read only their own profile, dictionaries, and words. Administrators can list all users and read any user's profile, dictionaries, and words. Administrator access to other people's data is read-only: updating, deleting, adding words, and ordering still require ownership. An ordinary user requesting `GET /users` receives 403.
 
-List endpoints require no query parameters or request body. An administrator can use `GET /user/{their-own-id}/dictionaries` when assembling their own dictionary reorder request.
+List endpoints accept optional pageNumber and pageSize query parameters, with no request body. An administrator can use `GET /user/{their-own-id}/dictionaries` when assembling their own dictionary reorder request.
 
 To set up an administrator:
 
@@ -277,7 +277,7 @@ GET /user/activities
 Authorization: Bearer YOUR_TOKEN
 ```
 
-All results are returned newest first. No query parameters or request body are required.
+Results are paginated and newest first. pageNumber defaults to 1 and pageSize to 12. No request body is required.
 There is no public endpoint to insert, edit, or delete history. The deleted entity ID
 remains in the history, so deleting a dictionary does not erase its events.
 
@@ -322,3 +322,19 @@ single-item routes. Anonymous readers can see all users' dictionaries in this mo
 Writes and activity history still require JWT authentication. Outside demo mode,
 normal user ownership and administrator rules apply. The frontend must call these
 API endpoints to display database fixtures; its current in-memory state is separate.
+
+## Pagination and errors
+
+Every collection GET returns `{ "pageNumber": 1, "pageSize": 12, "data": [] }`.
+Example: `GET /dictionaries?pageNumber=2&pageSize=12`. The parameters are optional,
+positive integers; pageSize is capped at 100. Beyond the last page, data is empty.
+Paging is applied to database queries after authorization and stable ordering.
+
+Read/delete/auth errors use `{ "ErrorMessage": "..." }`, retaining HTTP 400/401/403/404/409/429/500
+status codes. Validation errors include field names. Missing or inaccessible
+resources share a generic not-found/access message to avoid revealing private IDs.
+Development demo anonymous reads remain enabled. Writes and activity history still
+require authentication; production access rules are unchanged. No migration is needed.
+### Create and update results
+
+Dictionary, language, and word POST/PUT endpoints (including dictionary ordering) return exactly `{"isSuccessfull":true,"message":"Dictionary created successfully."}` on success, and `{"isSuccessfull":false,"message":"..."}` on failure. The spelling `isSuccessfull` is part of the API contract. Creation retains HTTP 201 and a Location header pointing to the created resource; updates return HTTP 200. Errors retain their appropriate 4xx/5xx status, including validation, malformed JSON, and permission errors. Fetch the resource with GET when its fields are needed. Registration and login retain their JWT responses. No database migration is needed.

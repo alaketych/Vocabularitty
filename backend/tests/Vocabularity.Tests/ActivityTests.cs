@@ -14,14 +14,14 @@ public sealed partial class ApiTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/user/activities")).StatusCode);
         var token = await Register(client, "activity@example.com");
         Authorize(client, token);
-        var language = await Body(await client.PostAsync("/language", Json(new { name = "English", original_name = "English" })));
+        var language = await CreatedResource(client, await client.PostAsync("/language", Json(new { name = "English", original_name = "English" })));
         var created = await client.PostAsync("/dictionary", Json(new { dictionary_name = "Travel", language_id = "en" }));
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
-        var dictionary = await Body(created);
+        var dictionary = await CreatedResource(client, created);
         var path = $"/dictionary/{dictionary["id"]}";
         Assert.Equal(HttpStatusCode.OK, (await client.PutAsync(path, Json(new { dictionary_name = "Trips", language_id = "en" }))).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync(path)).StatusCode);
-        var before = JArray.Parse(await client.GetStringAsync("/user/activities"));
+        var before = ReadPage(await client.GetStringAsync("/user/activities"));
         var events = before.Where(item => (string?)item["entity_id"] == (string?)dictionary["id"]).ToList();
         Assert.Equal(3, events.Count);
         Assert.Contains(events, item => (string?)item["function"] == "create_dictionary");
@@ -29,9 +29,9 @@ public sealed partial class ApiTests
         Assert.Contains(events, item => (string?)item["function"] == "delete_dictionary");
         Assert.All(events, item => Assert.NotNull(item["date"]));
         Assert.Equal(HttpStatusCode.NotFound, (await client.DeleteAsync(path)).StatusCode);
-        Assert.Equal(before.Count, JArray.Parse(await client.GetStringAsync("/user/activities")).Count);
+        Assert.Equal(before.Count, ReadPage(await client.GetStringAsync("/user/activities")).Count);
         Authorize(client, await Register(client, "other-activity@example.com"));
-        var other = JArray.Parse(await client.GetStringAsync("/user/activities"));
+        var other = ReadPage(await client.GetStringAsync("/user/activities"));
         Assert.DoesNotContain(other, item => (string?)item["entity_id"] == (string?)dictionary["id"]);
     }
 }

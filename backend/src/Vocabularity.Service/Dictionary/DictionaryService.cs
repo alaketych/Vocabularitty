@@ -11,7 +11,7 @@ public sealed class DictionaryService(IVocabularityDbContext database)
     public async Task<IReadOnlyList<DictionaryResponse>> ListAsync(
         string userId,
         CancellationToken cancellationToken,
-        bool isAdministrator = false)
+        bool isAdministrator = false, int pageNumber = 1, int pageSize = 12)
     {
         return await database.Dictionaries
             .AsNoTracking()
@@ -19,6 +19,7 @@ public sealed class DictionaryService(IVocabularityDbContext database)
             .OrderBy(dictionary => dictionary.Position)
             .ThenBy(dictionary => dictionary.CreatedAt)
             .ThenBy(dictionary => dictionary.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize)
             .Select(dictionary => new DictionaryResponse(
                 dictionary.Id, dictionary.Name, dictionary.UserId, dictionary.LanguageId, dictionary.Position))
             .ToListAsync(cancellationToken);
@@ -122,7 +123,7 @@ public sealed class DictionaryService(IVocabularityDbContext database)
         string userId,
         string dictionaryId,
         CancellationToken cancellationToken,
-        bool isAdministrator = false)
+        bool isAdministrator = false, int pageNumber = 1, int pageSize = 12)
     {
         await FindAccessibleDictionaryAsync(userId, dictionaryId, cancellationToken, isAdministrator);
 
@@ -131,6 +132,7 @@ public sealed class DictionaryService(IVocabularityDbContext database)
             .Where(word => word.DictionaryId == dictionaryId)
             .OrderBy(word => word.CreatedAt)
             .ThenBy(word => word.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize)
             .Select(word => new WordResponse(
                 word.Id,
                 word.DictionaryId,

@@ -30,7 +30,7 @@ public sealed class AuthService(
     }
 
     public async Task<IReadOnlyList<UserResponse>> ListUsersAsync(
-        bool isAdministrator, CancellationToken cancellationToken)
+        bool isAdministrator, CancellationToken cancellationToken, int pageNumber = 1, int pageSize = 12)
     {
         if (!isAdministrator)
         {
@@ -40,6 +40,7 @@ public sealed class AuthService(
         return await database.Users.AsNoTracking()
             .OrderBy(user => user.Email)
             .ThenBy(user => user.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize)
             .Select(user => new UserResponse(user.Id, user.Email, user.Icon, user.Role))
             .ToListAsync(cancellationToken);
     }
