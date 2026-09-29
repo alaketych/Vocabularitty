@@ -1,0 +1,58 @@
+@use '../colors'
+
+.page-loading
+  display: grid
+  place-items: center
+  min-height: 60dvh
+  padding: 32px
+
+.spinner
+  display: inline-flex
+  flex-direction: column
+  align-items: center
+  gap: 14px
+  color: colors.$primary-color
+
+.spinner-icon
+  width: 48px
+  height: 48px
+  fill: none
+  stroke-width: 4
+
+.spinner--small .spinner-icon
+  width: 28px
+  height: 28px
+
+.spinner--large .spinner-icon
+  width: 72px
+  height: 72px
+
+.spinner-track
+  stroke: colors.$accent-background-color
+
+.spinner-ring
+  stroke: currentColor
+  stroke-linecap: round
+  stroke-dasharray: 55 115
+  transform-origin: center
+  animation: spinner-rotate 1.1s linear infinite
+
+.spinner-mark
+  stroke: colors.$text-color
+  stroke-linecap: round
+  stroke-linejoin: round
+
+.spinner-label
+  font-size: 13px
+  color: colors.$muted-text-color
+
+@keyframes spinner-rotate
+  to
+    transform: rotate(360deg)
+
+@media (prefers-reduced-motion: reduce)
+  .spinner-ring
+    animation: none
+
+html[data-reduced-motion='true'] .spinner-ring
+  animation: none

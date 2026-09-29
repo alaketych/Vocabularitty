@@ -1,0 +1,104 @@
+@use '../colors'
+
+.notification
+  position: absolute
+  right: 2%
+  bottom: 3%
+
+  display: flex
+  align-items: center
+  gap: 14px
+  width: 100%
+  max-width: 480px
+  padding: 16px 18px
+  border: 1px solid colors.$border-color
+  border-radius: 14px
+  background: colors.$surface-color
+  color: colors.$text-color
+  box-shadow: 0 6px 20px colors.$soft-shadow-color
+  animation: notification-enter 200ms ease-out
+  z-index: 1000
+
+.notification-icon
+  display: grid
+  place-items: center
+  flex-shrink: 0
+  width: 40px
+  height: 40px
+  border-radius: 11px
+  background: colors.$accent-background-color
+  color: colors.$accent-text-color
+
+.notification--success .notification-icon
+  background: colors.$book-sage-color
+  color: colors.$text-color
+
+.notification-content
+  flex: 1
+  min-width: 0
+  overflow-wrap: anywhere
+  strong
+    font-size: 14px
+    font-weight: 600
+  p
+    margin: 5px 0 0
+    font-size: 13px
+    line-height: 1.6
+    color: colors.$muted-text-color
+
+.notification-close
+  display: grid
+  place-items: center
+  flex-shrink: 0
+  width: 36px
+  height: 36px
+  padding: 0
+  border: 0
+  border-radius: 10px
+  background: transparent
+  color: colors.$muted-text-color
+  cursor: pointer
+  transition: background-color 240ms ease, color 240ms ease
+  &:hover
+    background: colors.$accent-background-color
+    color: colors.$accent-text-color
+  &:focus-visible
+    outline: 2px solid colors.$primary-color
+    outline-offset: 3px
+
+@keyframes notification-enter
+  from
+    opacity: 0
+    transform: translateY(6px)
+  to
+    opacity: 1
+    transform: translateY(0)
+
+@media (prefers-reduced-motion: reduce)
+  .notification
+    animation: none
+  .notification-close
+    transition: none
+
+html[data-reduced-motion='true'] .notification
+  animation: none
+
+@media (max-width: 768px)
+  .notification
+    left: 5%
+    right: 5%
+    bottom: 3%
+    width: auto
+    max-width: none
+
+@media (max-width: 480px)
+  .notification
+    left: 4%
+    right: 4%
+    bottom: 2%
+    padding: 12px 14px
+    gap: 10px
+
+  .notification-icon
+    width: 36px
+    height: 36px
