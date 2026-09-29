@@ -29,7 +29,7 @@ public sealed partial class ApiTests
         var dictionaryId = await CreateDictionary(client, "Private");
         var dictionary = await Body(await client.GetAsync($"/dictionary/{dictionaryId}"));
         var ownerId = dictionary.Value<string>("user_id");
-        var word = await Body(await client.PostAsync($"/dictionary/{dictionaryId}/word",
+        var word = await CreatedResource(client, await client.PostAsync($"/dictionary/{dictionaryId}/word",
             Json(new { original_word = "cat", translated_word = "кіт" })));
         var wordPath = $"/dictionary/{dictionaryId}/word/{word["id"]}";
 
@@ -39,7 +39,7 @@ public sealed partial class ApiTests
 
         var usersResponse = await client.GetAsync("/users");
         Assert.Equal(HttpStatusCode.OK, usersResponse.StatusCode);
-        Assert.Equal(2, JArray.Parse(await usersResponse.Content.ReadAsStringAsync()).Count);
+        Assert.Equal(2, ReadPage(await usersResponse.Content.ReadAsStringAsync()).Count);
         Assert.DoesNotContain("password_hash", await usersResponse.Content.ReadAsStringAsync());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/user/{ownerId}")).StatusCode);
         Assert.Contains(dictionaryId, await client.GetStringAsync("/dictionaries"));
@@ -66,7 +66,7 @@ public sealed partial class ApiTests
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/user/{ownerId}/dictionaries")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/dictionary/{dictionaryId}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(wordPath)).StatusCode);
-        Assert.Equal("[]", await client.GetStringAsync("/dictionaries"));
+        Assert.Empty(ReadPage(await client.GetStringAsync("/dictionaries")));
 
         Authorize(client, ownerToken);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/user/{ownerId}/dictionaries")).StatusCode);
@@ -84,7 +84,7 @@ public sealed partial class ApiTests
         }));
         Assert.Equal(HttpStatusCode.BadRequest, forged.StatusCode);
 
-        var registered = await Body(await client.PostAsync("/user/register", Json(new
+        var registered = await CreatedResource(client, await client.PostAsync("/user/register", Json(new
         {
             email = "default-role@example.com", password = "Test-password-12345!"
         })));
@@ -93,7 +93,7 @@ public sealed partial class ApiTests
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/users")).StatusCode);
 
         await SetRole(app, "default-role@example.com", UserRoles.Administrator);
-        var login = await Body(await client.PostAsync("/user/login", Json(new
+        var login = await CreatedResource(client, await client.PostAsync("/user/login", Json(new
         {
             email = "default-role@example.com", password = "Test-password-12345!"
         })));

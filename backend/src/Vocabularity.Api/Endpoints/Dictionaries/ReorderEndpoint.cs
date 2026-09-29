@@ -5,12 +5,13 @@ using Vocabularity.Service.Dictionary.Models;
 namespace Vocabularity.Api.Endpoints.Dictionaries;
 
 public sealed class ReorderEndpoint(DictionaryService dictionaryService)
-    : AuthenticatedEndpoint<ReorderDictionariesRequest, EmptyResponse>
+    : AuthenticatedEndpoint<ReorderDictionariesRequest, OperationResponse>
 {
     public override void Configure()
     {
+        Options(builder => builder.WithMetadata(new OperationResponseMetadata()));
         Put("/dictionary/order");
-        Description(builder => builder.Produces(204).Produces(409));
+        Description(builder => builder.WithTags("Dictionaries").Produces<OperationResponse>(200).Produces<OperationResponse>(409));
     }
 
     public override async Task HandleAsync(
@@ -18,7 +19,7 @@ public sealed class ReorderEndpoint(DictionaryService dictionaryService)
         CancellationToken cancellationToken)
     {
         await dictionaryService.ReorderAsync(CurrentUserId, request, cancellationToken);
-        await Send.NoContentAsync(cancellationToken);
+        await Send.ResponseAsync(new OperationResponse(true, "Dictionary order updated successfully."), 200, cancellationToken);
     }
 }
 

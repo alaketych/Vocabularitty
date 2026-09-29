@@ -72,8 +72,17 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 }
 public sealed partial class ApiTests
 {
+    private static JArray ReadPage(string json) => (JArray)JObject.Parse(json)["data"]!;
     private static StringContent Json(object value) => new(JsonConvert.SerializeObject(value), Encoding.UTF8, "application/json");
     private static async Task<JObject> Body(HttpResponseMessage response) => JObject.Parse(await response.Content.ReadAsStringAsync());
+    private static async Task<JObject> CreatedResource(HttpClient client, HttpResponseMessage response)
+    {
+        if (response.Headers.Location is null) return await Body(response);
+        var result = await Body(response);
+        Assert.True(result.Value<bool>("isSuccessfull"));
+        Assert.Equal(2, result.Properties().Count());
+        return await Body(await client.GetAsync(response.Headers.Location));
+    }
     private static async Task<string> Register(HttpClient client, string email)
     {
         var response = await client.PostAsync("/user/register", Json(new
@@ -127,7 +136,7 @@ public sealed partial class ApiTests
             language_id = "en"
         }));
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
-        var path = "/dictionary/" + (await Body(created)).Value<string>("id");
+        var path = "/dictionary/" + (await CreatedResource(client, created)).Value<string>("id");
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(path)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/dictionaries")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.PutAsync(path, Json(new
@@ -141,7 +150,7 @@ public sealed partial class ApiTests
             translated_word = "кіт"
         }));
         Assert.Equal(HttpStatusCode.Created, word.StatusCode);
-        var wordPath = path + "/word/" + (await Body(word)).Value<string>("id");
+        var wordPath = path + "/word/" + (await CreatedResource(client, word)).Value<string>("id");
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(wordPath)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(path + "/words")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.PutAsync(wordPath, Json(new
@@ -174,15 +183,15 @@ public sealed partial class ApiTests
             dictionary_name = "Private",
             language_id = "en"
         }));
-        var path = "/dictionary/" + (await Body(dictionary)).Value<string>("id");
+        var path = "/dictionary/" + (await CreatedResource(client, dictionary)).Value<string>("id");
         var word = await client.PostAsync(path + "/word", Json(new
         {
             original_word = "cat",
             translated_word = "кіт"
         }));
-        var wordPath = path + "/word/" + (await Body(word)).Value<string>("id");
+        var wordPath = path + "/word/" + (await CreatedResource(client, word)).Value<string>("id");
         Authorize(client, stranger);
-        Assert.Equal("[]", await client.GetStringAsync("/dictionaries"));
+        Assert.Empty(ReadPage(await client.GetStringAsync("/dictionaries")));
         foreach (var url in new[] { path, path + "/words", wordPath })
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync(url)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.PutAsync(path, Json(new
@@ -233,17 +242,17 @@ public sealed partial class ApiTests
         using var app = new ApiFactory();
         using var client = app.Start();
         Authorize(client, await Register(client, "owner@example.com"));
-        var a = await Body(await client.PostAsync("/dictionary", Json(new
+        var a = await CreatedResource(client, await client.PostAsync("/dictionary", Json(new
         {
             dictionary_name = "A",
             language_id = "en"
         })));
-        var b = await Body(await client.PostAsync("/dictionary", Json(new
+        var b = await CreatedResource(client, await client.PostAsync("/dictionary", Json(new
         {
             dictionary_name = "B",
             language_id = "de"
         })));
-        var word = await Body(await client.PostAsync($"/dictionary/{a["id"]}/word", Json(new
+        var word = await CreatedResource(client, await client.PostAsync($"/dictionary/{a["id"]}/word", Json(new
         {
             original_word = "cat",
             translated_word = "кіт"

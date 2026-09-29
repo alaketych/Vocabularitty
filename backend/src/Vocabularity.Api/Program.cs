@@ -28,7 +28,13 @@ if (DemoMode.Enabled(app.Environment, app.Configuration) && app.Configuration.Ge
 }
 
 app.UseExceptionHandler();
-app.UseStatusCodePages();
+app.UseStatusCodePages(async statusContext =>
+{
+    var response = statusContext.HttpContext.Response;
+    response.ContentType = "application/json";
+    await response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(
+        Vocabularity.Api.OperationResponse.Failure(statusContext.HttpContext, Vocabularity.Api.ErrorResponse.ForStatus(response.StatusCode))));
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -47,6 +53,13 @@ else
 }
 
 app.UseRouting();
+app.Use(async (context, next) =>
+{
+    // Exception handling clears endpoint metadata; retain the response contract for failures.
+    if (context.GetEndpoint()?.Metadata.GetMetadata<Vocabularity.Api.OperationResponseMetadata>() is not null)
+        context.Items[typeof(Vocabularity.Api.OperationResponseMetadata)] = true;
+    await next(context);
+});
 app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();

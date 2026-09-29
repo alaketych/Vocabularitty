@@ -13,23 +13,25 @@ public sealed record ActivityResponse(
     [property: JsonProperty("date")] DateTime Date);
 
 public sealed class ListEndpoint(VocabularityDbContext database)
-    : AuthenticatedListEndpoint< IReadOnlyList<ActivityResponse>>
+    : AuthenticatedListEndpoint< PageResponse<ActivityResponse>>
 {
     public override void Configure()
     {
         Get("/user/activities");
-        Description(builder => builder.Produces<IReadOnlyList<ActivityResponse>>(200));
+        Description(builder => builder.WithTags("Activity").Produces<PageResponse<ActivityResponse>>(200));
     }
 
     public override async Task HandleAsync(CancellationToken cancellationToken)
     {
+        var paging = Pagination.Read(HttpContext.Request);
         var activities = await database.UserActivities.AsNoTracking()
             .Where(activity => activity.UserId == CurrentUserId)
             .OrderByDescending(activity => activity.Date).ThenByDescending(activity => activity.Id)
             
+            .Skip((paging.PageNumber - 1) * paging.PageSize).Take(paging.PageSize)
             .Select(activity => new ActivityResponse(activity.Id, activity.UserId,
                 activity.Function, activity.EntityId, activity.Date))
             .ToListAsync(cancellationToken);
-        await Send.ResponseAsync(activities, 200, cancellationToken);
+        await Send.ResponseAsync(new PageResponse<ActivityResponse>(paging.PageNumber, paging.PageSize, activities), 200, cancellationToken);
     }
 }

@@ -13,12 +13,12 @@ public sealed partial class ApiTests
             dictionary_name = name, language_id = "en"
         }));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        return (await Body(response)).Value<string>("id")!;
+        return (await CreatedResource(client, response)).Value<string>("id")!;
     }
 
     private static async Task<string[]> DictionaryOrder(HttpClient client)
     {
-        var dictionaries = JArray.Parse(await client.GetStringAsync("/dictionaries"));
+        var dictionaries = ReadPage(await client.GetStringAsync("/dictionaries"));
         return dictionaries.Select(dictionary => dictionary.Value<string>("id")!).ToArray();
     }
 
@@ -37,13 +37,13 @@ public sealed partial class ApiTests
         {
             dictionary_ids = new[] { third, first, second }
         }));
-        Assert.Equal(HttpStatusCode.NoContent, reordered.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, reordered.StatusCode);
 
         using var freshClient = app.CreateClient();
         Authorize(freshClient, token);
         Assert.Equal(new[] { third, first, second }, await DictionaryOrder(freshClient));
         Assert.Equal(0, (await Body(await freshClient.GetAsync($"/dictionary/{third}"))).Value<int>("position"));
-        var page = JArray.Parse(await freshClient.GetStringAsync("/dictionaries"));
+        var page = ReadPage(await freshClient.GetStringAsync("/dictionaries"));
         Assert.Equal(3, page.Count);
         Assert.Equal(third, page[0].Value<string>("id"));
 
@@ -101,7 +101,7 @@ public sealed partial class ApiTests
         using var app = new ApiFactory();
         using var client = app.Start();
         Authorize(client, await Register(client, "empty-order@example.com"));
-        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync(
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsync(
             "/dictionary/order", Json(new { dictionary_ids = Array.Empty<string>() }))).StatusCode);
     }
 }

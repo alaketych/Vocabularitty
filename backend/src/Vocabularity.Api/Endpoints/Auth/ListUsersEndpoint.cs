@@ -6,20 +6,21 @@ using Vocabularity.Service.User;
 namespace Vocabularity.Api.Endpoints.Auth;
 
 public sealed class ListUsersEndpoint(AuthService authService)
-    : AuthenticatedListEndpoint< IReadOnlyList<UserResponse>>
+    : AuthenticatedListEndpoint< PageResponse<UserResponse>>
 {
     public override void Configure()
     {
         if (Vocabularity.Api.Configuration.DemoMode.Enabled(Resolve<IWebHostEnvironment>(), Resolve<IConfiguration>())) AllowAnonymous();
         Get("/users");
         Roles(UserRoles.Administrator);
-        Description(builder => builder.Produces<IReadOnlyList<UserResponse>>(200).Produces(403));
+        Description(builder => builder.WithTags("Users").Produces<PageResponse<UserResponse>>(200).Produces(403));
     }
 
     public override async Task HandleAsync(CancellationToken cancellationToken)
     {
+        var paging = Pagination.Read(HttpContext.Request);
         var response = await authService.ListUsersAsync(
-            IsAdministrator, cancellationToken);
-        await Send.OkAsync(response, cancellationToken);
+            IsAdministrator, cancellationToken, paging.PageNumber, paging.PageSize);
+        await Send.OkAsync(new PageResponse<UserResponse>(paging.PageNumber, paging.PageSize, response), cancellationToken);
     }
 }

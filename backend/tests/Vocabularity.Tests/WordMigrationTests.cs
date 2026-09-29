@@ -23,7 +23,7 @@ public sealed partial class ApiTests
             translated_word = "кіт"
         }));
         Assert.Equal(System.Net.HttpStatusCode.Created, created.StatusCode);
-        var wordId = (await Body(created)).Value<string>("id");
+        var wordId = (await CreatedResource(client, created)).Value<string>("id");
 
         using var scope = app.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<VocabularityDbContext>();

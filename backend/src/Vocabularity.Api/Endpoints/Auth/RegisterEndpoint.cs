@@ -11,7 +11,7 @@ public sealed class RegisterEndpoint(AuthService authService) : Endpoint<Registe
         Post("/user/register");
         AllowAnonymous();
         Options(options => options.RequireRateLimiting("auth"));
-        Description(builder => builder.Produces<AuthResponse>(201));
+        Description(builder => builder.WithTags("Authentication").Produces<AuthResponse>(201));
     }
 
     public override async Task HandleAsync(RegisterRequest request, CancellationToken cancellationToken)

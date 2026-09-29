@@ -5,18 +5,19 @@ using Vocabularity.Service.Dictionary.Models;
 namespace Vocabularity.Api.Endpoints.Dictionaries;
 
 public sealed class UpdateEndpoint(DictionaryService dictionaryService)
-    : AuthenticatedEndpoint<DictionaryRequest, DictionaryResponse>
+    : AuthenticatedEndpoint<DictionaryRequest, OperationResponse>
 {
     public override void Configure()
     {
+        Options(builder => builder.WithMetadata(new OperationResponseMetadata()));
         Put("/dictionary/{id}");
-        Description(builder => builder.Produces<DictionaryResponse>(200));
+        Description(builder => builder.WithTags("Dictionaries").Produces<OperationResponse>(200));
     }
 
     public override async Task HandleAsync(DictionaryRequest request, CancellationToken cancellationToken)
     {
-        var response = await dictionaryService.UpdateAsync(CurrentUserId, Route<string>("id")!, request, cancellationToken);
-        await Send.ResponseAsync(response, 200, cancellationToken);
+        await dictionaryService.UpdateAsync(CurrentUserId, Route<string>("id")!, request, cancellationToken);
+        await Send.ResponseAsync(new OperationResponse(true, "Dictionary updated successfully."), 200, cancellationToken);
     }
 }
 

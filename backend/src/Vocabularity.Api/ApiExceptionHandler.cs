@@ -5,7 +5,7 @@ using Vocabularity.Core;
 
 namespace Vocabularity.Api;
 
-public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger, IProblemDetailsService problems) : IExceptionHandler
+public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken ct)
     {
@@ -26,16 +26,9 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger, IPr
         }
 
         context.Response.StatusCode = status;
-        await problems.WriteAsync(new ProblemDetailsContext
-        {
-            HttpContext = context,
-            ProblemDetails = new ProblemDetails
-            {
-                Status = status,
-                Title = title,
-                Extensions = { ["trace_id"] = context.TraceIdentifier }
-            }
-        });
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(Newtonsoft.Json.JsonConvert.SerializeObject(
+            OperationResponse.Failure(context, status is 401 or 403 or 404 ? ErrorResponse.ForStatus(status) : title)), ct);
 
         return true;
     }
