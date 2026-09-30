@@ -1,24 +1,50 @@
+import axios from 'axios';
+import * as api from '../api/dictionaryApi';
+import { Spinner, Pagination } from '../components/_index';
 import { useEffect, useState, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { BookOpen, Trash2, Pencil } from 'lucide-react';
 import { Word } from '../components/Dictionary/_index'
 import Modal from '../Modals/Modal';
 import { WordSummary, DictionarySummary } from '../models/_index'
 
-type Props = {
-  onCreate: (dictionaryId: string, word: WordSummary) => void;
-  onEdit: (dictionaryId: string, dictionaryTitle: string) => void;
-  onDelete: (dictionaryId: string, wordId: string) => void;
-  dictionaries: readonly DictionarySummary[];
-};
+type Props = { onNotification: (isSuccessfull: boolean, message: string) => void };
 
-export default function Dictionary({
-  dictionaries,
-  onCreate,
-  onEdit,
-  onDelete
-}: Props) {
+export default function Dictionary({ onNotification }: Props) {
+  const START_PAGE = 1;
+  const PAGE_SIZE = 12;
   const { id } = useParams();
+  const [params, setParams] = useSearchParams();
+  const requestedPage = Number(params.get('pageNumber') || START_PAGE);
+  const pageNumber = Number.isSafeInteger(requestedPage) && requestedPage > 0 && requestedPage <= 178956970
+    ? requestedPage : START_PAGE;
+  const [dictionaries, setDictionaries] = useState<DictionarySummary[]>([]);
+  const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  function changePage(page: number) {
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set('pageNumber', String(page));
+      return next;
+    });
+  }
+
+  function errorMessage(error: unknown) {
+    if (!axios.isAxiosError(error)) {
+      return 'Something went wrong. Please try again.';
+    }
+
+  return (
+      error.response?.data?.message ??
+      error.response?.data?.errorMessage ??
+      error.response?.data?.ErrorMessage ??
+      'Unable to load your data. Please try again.'
+    );
+  }
 
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
   const [selectedWord, setSelectedWord] = useState<WordSummary | null>(null);
@@ -92,8 +118,65 @@ export default function Dictionary({
     setIsEditingTitle(false);
   };
 
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    async function load() {
+      try {
+          if (!id) throw new Error("Missing dictionary ID");
+          const [dictionary, words] = await Promise.all([
+            api.getDictionary(id, controller.signal),
+            api.getWords(id, pageNumber, PAGE_SIZE, controller.signal),
+          ]);
+          if (controller.signal.aborted) return;
+          setDictionaries([{ ...dictionary, words: words.data }]);
+          setCount(words.data.length);
+      } catch (error) {
+        if (!controller.signal.aborted) setError(errorMessage(error));
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    void load();
+    return () => controller.abort();
+  }, [id, pageNumber, revision]);
+
+  async function mutate(action: () => Promise<{ data: api.OperationResponse | undefined }>, deleting = false) {
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await action();
+      if (response.data?.isSuccessfull === false) {
+        onNotification(false, response.data.message);
+        return;
+      }
+      onNotification(true, response.data?.message || 'Deleted successfully.');
+      if (deleting && count === START_PAGE && pageNumber > START_PAGE) changePage(pageNumber - START_PAGE);
+      else setRevision(value => value + START_PAGE);
+    } catch (error) {
+      onNotification(false, errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const onCreate = (id: string, word: WordSummary) => void mutate(() => api.createWord(id, word));
+  const onEdit = (id: string, title: string) => {
+    if (dictionary) void mutate(() => api.updateDictionary(id, title, dictionary.language_id));
+  };
+  const onDelete = (id: string, wordId: string) => void mutate(() => api.deleteWord(id, wordId), true);
+
+  if (loading) return <div className="page-loading"><Spinner label="Loading page…" /></div>;
+  if (error) return <div className="page" role="alert">
+    <p>{error}</p>
+    <button type="button" className="modal-cancel" onClick={() => setRevision(value => value + 1)}>Retry</button>
+    <Pagination pageNumber={pageNumber} hasNext={!error && count === PAGE_SIZE}
+        disabled={loading || saving} onChange={changePage} />
+  </div>;
+
   return (
-    <div className="page">
+    <div className="page" aria-busy={saving}>
       <Link to="/dictionary">
         ← Back to library
       </Link>
@@ -285,6 +368,8 @@ export default function Dictionary({
           </>
         }
       />
+      <Pagination pageNumber={pageNumber} hasNext={!error && count === PAGE_SIZE}
+        disabled={loading || saving} onChange={changePage} />
     </div>
   );
 }
