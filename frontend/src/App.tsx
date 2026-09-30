@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Sidebar, Footer, Spinner, Notification } from './components/_index';
-import DictionaryPages from './pages/DictionaryPages';
+const Library = lazy(() => import('./pages/Library'));
+const Dictionary = lazy(() => import('./pages/Dictionary'));
 const Home = lazy(() => import('./pages/Home'));
 const Settings = lazy(() => import('./pages/Settings'));
 
@@ -83,8 +84,7 @@ export default function App() {
                 <Route
                   path="/dictionary/:id"
                   element={
-                    <DictionaryPages key="words" 
-                      detail
+                    <Dictionary
                       onNotification={showNotification} />
                   }
                 />
@@ -92,7 +92,7 @@ export default function App() {
                 <Route
                   path="/dictionary"
                   element={
-                    <DictionaryPages key="library"
+                    <Library
                       onNotification={showNotification} />
                   }
                 />
