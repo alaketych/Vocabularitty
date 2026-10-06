@@ -22,13 +22,13 @@ export default function AddDictionaryModal({ dialogRef, languages, onCreate }: P
       icon={<BookOpen size={25} />}
       footer={
         <>
-        <button type="button" className="modal-cancel" onClick={() => dialogRef.current?.close()}>
-          Cancel
-        </button>
-        <button type="submit" form={`${id}-form`} className="primary-button"
-          disabled={!title.trim() || !languages.some(language => language.id === languageId)}>
-          Create dictionary
-        </button>
+          <button type="button" className="modal-cancel" onClick={() => dialogRef.current?.close()}>
+            Cancel
+          </button>
+          <button type="submit" form={`${id}-form`} className="primary-button"
+            disabled={!title.trim() || !languages.some(language => language.id === languageId)}>
+            Create dictionary
+          </button>
         </>
       }
     >

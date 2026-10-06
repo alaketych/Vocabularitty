@@ -1,9 +1,24 @@
-import { BookOpen, House, Menu, Settings, ArrowUpRight } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { BookOpen, House, Menu, Settings, LogIn, ArrowUpRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
 type Props = { collapsed: boolean; onToggle: () => void };
 
 export default function Sidebar({ collapsed, onToggle }: Props) {
+  const location = useLocation();
+  const readSession = () => {
+    try { return Boolean(localStorage.getItem('token')); }
+    catch { return false; }
+  };
+  const [isAuthenticated, setIsAuthenticated] = useState(readSession);
+
+  useEffect(() => {
+    const syncSession = () => setIsAuthenticated(readSession());
+    syncSession();
+    window.addEventListener('storage', syncSession);
+    return () => window.removeEventListener('storage', syncSession);
+  }, [location.key]);
+
   return (
     <aside className="sidebar" aria-label="Application sidebar">
       <div className="sidebar-top">
@@ -36,9 +51,12 @@ export default function Sidebar({ collapsed, onToggle }: Props) {
         </NavLink>
         <div className="sidebar-bottom">
           <span className="sidebar-note">Little by little.<br />Word by word.</span>
-          <NavLink to="/settings" className="navigation-link settings-link" title="Settings">
-            <Settings size={22} strokeWidth={1.7} aria-hidden="true" />
-            <span className="navigation-label">Settings</span>
+          <NavLink to={isAuthenticated ? '/settings' : '/login'} className="navigation-link settings-link"
+            title={isAuthenticated ? 'Settings' : 'Login'}>
+            {isAuthenticated
+              ? <Settings size={22} strokeWidth={1.7} aria-hidden="true" />
+              : <LogIn size={22} strokeWidth={1.7} aria-hidden="true" />}
+            <span className="navigation-label">{isAuthenticated ? 'Settings' : 'Login'}</span>
           </NavLink>
         </div>
       </nav>
