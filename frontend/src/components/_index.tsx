@@ -8,5 +8,6 @@ export {
     Modal, 
     DeleteWordModal,
     AddDictionaryModal, 
-    DeleteDictionaryModal } from '../Modals/_index'
+    DeleteDictionaryModal } from '../modals/_index'
 export { Word, DictionaryList, DictionaryPreview } from './Dictionary/_index'
+export { Login } from './Auth/_index'

@@ -1,40 +1,20 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { useNotification } from './contexts/NotificationContext'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { Sidebar, Footer, Spinner, Notification } from './components/_index';
+import { Sidebar, Footer, Spinner, Notification, Login } from './components/_index';
+
 const Library = lazy(() => import('./pages/Library'));
 const Dictionary = lazy(() => import('./pages/Dictionary'));
 const Home = lazy(() => import('./pages/Home'));
 const Settings = lazy(() => import('./pages/Settings'));
 
 export default function App() {
-  const [notification, setNotification] = useState({
-    isSuccessfull: false,
-    closed: true,
-    message: '',
-  });
+  const { notification, closeNotification } = useNotification();
   const [collapsed, setCollapsed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(() => {
     try { return localStorage.getItem('vocabularity.reducedMotion') === 'true'; }
     catch { return false; }
   });
-
-  const showNotification = (
-    isSuccessfull: boolean,
-    message: string
-  ) => {
-    setNotification({
-      isSuccessfull,
-      closed: false,
-      message,
-    });
-  };
-
-  const closeNotification = () => {
-    setNotification(state => ({
-      ...state,
-      closed: true
-    }))
-  };
 
   useEffect(() => {
     document.documentElement.dataset.reducedMotion = String(reducedMotion);
@@ -76,6 +56,7 @@ export default function App() {
               }
             >
               <Routes>
+                <Route path="/login" element={<div className="page login-page"><Login /></div>} />
                 <Route
                   path="/"
                   element={<Home />}
@@ -83,18 +64,12 @@ export default function App() {
 
                 <Route
                   path="/dictionary/:id"
-                  element={
-                    <Dictionary
-                      onNotification={showNotification} />
-                  }
+                  element={ <Dictionary /> }
                 />
 
                 <Route
                   path="/dictionary"
-                  element={
-                    <Library
-                      onNotification={showNotification} />
-                  }
+                  element={ <Library/> }
                 />
 
                 <Route
@@ -115,16 +90,17 @@ export default function App() {
             </Suspense>
           </main>
 
-          <Footer />
-
-          <Notification 
+          <Notification
             isSuccessfull={notification.isSuccessfull}
             closed={notification.closed}
             message={notification.message}
             onClose={closeNotification}
           />
+          
+          <Footer />
         </div>
       </div>
+      
     </BrowserRouter>
   );
 }
