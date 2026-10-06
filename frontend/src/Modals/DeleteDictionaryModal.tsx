@@ -5,11 +5,12 @@ import Modal from './Modal';
 type Props = {
   dialogRef: RefObject<HTMLDialogElement | null>;
   dictionaryTitle: string;
-  onConfirm: () => void;
+  saving: boolean;
+  onConfirm: () => Promise<boolean>;
   onClose: () => void;
 };
 
-export default function DeleteDictionaryModal({ dialogRef, dictionaryTitle, onConfirm, onClose }: Props) {
+export default function DeleteDictionaryModal({ dialogRef, dictionaryTitle, saving, onConfirm, onClose }: Props) {
   return (
     <Modal dialogRef={dialogRef} title="Delete dictionary?"
       description={`Remove “${dictionaryTitle}” from your library?`}
@@ -17,10 +18,10 @@ export default function DeleteDictionaryModal({ dialogRef, dictionaryTitle, onCo
       footer={
         <>
           <button type="button" className="modal-cancel" autoFocus onClick={() => dialogRef.current?.close()}>Cancel</button>
-          <button type="button" className="primary-button" onClick={() => {
-            dialogRef.current?.close();
-            onConfirm();
-          }}>Delete dictionary</button>
+          <button type="button" className="primary-button" disabled={saving} onClick={async () => {
+            if (saving) return;
+            if (await onConfirm()) dialogRef.current?.close();
+          }}>{saving ? 'Deleting…' : 'Delete dictionary'}</button>
         </>
       }
     />
