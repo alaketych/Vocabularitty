@@ -55,7 +55,7 @@ export async function getDictionaries(pageNumber = 1, pageSize = 12, signal?: Ab
   return { ...response.data, data };
 }
 
-export const createDictionary = (dictionary: DictionarySummary) =>
+export const createDictionary = (dictionary: Pick<DictionarySummary, 'dictionary_name' | 'language_id'>) =>
   api.post<OperationResponse>(API_CREATE_DICTIONARY, {
     dictionary_name: dictionary.dictionary_name, language_id: dictionary.language_id,
   });

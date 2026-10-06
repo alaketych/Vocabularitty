@@ -101,6 +101,7 @@ export default function Library() {
     }>,
     deleting = false
   ) {
+    if (saving) return false;
     setSaving(true);
     setError(null);
 
@@ -109,7 +110,7 @@ export default function Library() {
 
       if (response.data?.isSuccessfull === false) {
         showNotification(false, response.data.message);
-        return;
+        return false;
       }
 
       showNotification(
@@ -126,19 +127,21 @@ export default function Library() {
       } else {
         setRevision(value => value + 1);
       }
+      return true;
     } catch (error) {
       showNotification(false, errorMessage(error));
+      return false;
     } finally {
       setSaving(false);
     }
   }
 
-  const onCreate = (dictionary: DictionarySummary) => {
-    void mutate(() => api.createDictionary(dictionary));
+  const onCreate = (dictionary: Pick<DictionarySummary, 'dictionary_name' | 'language_id'>) => {
+    return mutate(() => api.createDictionary(dictionary));
   };
 
   const onDelete = (id: string) => {
-    void mutate(() => api.deleteDictionary(id), true);
+    return mutate(() => api.deleteDictionary(id), true);
   };
 
   if (loading) {
@@ -204,26 +207,23 @@ export default function Library() {
       <AddDictionaryModal
         dialogRef={dialogRef}
         languages={languages}
+        saving={saving}
         onCreate={(title, language) => {
-          onCreate({
-            id: crypto.randomUUID(),
+          return onCreate({
             dictionary_name: title,
             language_id: language.id,
-            icon: language.icon,
-            words: [],
           });
         }}
       />
 
       <DeleteDictionaryModal
         dialogRef={deleteDialogRef}
+        saving={saving}
         dictionaryTitle={selectedDictionary?.dictionary_name ?? ''}
         onClose={() => setSelectedDictionary(null)}
         onConfirm={() => {
-          if (!selectedDictionary) return;
-
-          onDelete(selectedDictionary.id);
-          setSelectedDictionary(null);
+          if (!selectedDictionary) return Promise.resolve(false);
+          return onDelete(selectedDictionary.id);
         }}
       />
 

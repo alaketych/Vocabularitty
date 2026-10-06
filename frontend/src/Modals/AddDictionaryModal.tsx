@@ -6,10 +6,11 @@ import type { LanguageSummary } from '../models/_index';
 type Props = {
   dialogRef: RefObject<HTMLDialogElement | null>;
   languages: readonly LanguageSummary[];
-  onCreate: (title: string, language: LanguageSummary) => void;
+  saving: boolean;
+  onCreate: (title: string, language: LanguageSummary) => Promise<boolean>;
 };
 
-export default function AddDictionaryModal({ dialogRef, languages, onCreate }: Props) {
+export default function AddDictionaryModal({ dialogRef, languages, saving, onCreate }: Props) {
   const id = useId();
   const [title, setTitle] = useState('');
   const [languageId, setLanguageId] = useState('');
@@ -26,17 +27,17 @@ export default function AddDictionaryModal({ dialogRef, languages, onCreate }: P
             Cancel
           </button>
           <button type="submit" form={`${id}-form`} className="primary-button"
-            disabled={!title.trim() || !languages.some(language => language.id === languageId)}>
-            Create dictionary
+            disabled={saving || !title.trim() || !languages.some(language => language.id === languageId)}>
+            {saving ? 'Creating…' : 'Create dictionary'}
           </button>
         </>
       }
     >
-      <form id={`${id}-form`} className="dictionary-form" onSubmit={event => {
+      <form id={`${id}-form`} className="dictionary-form" aria-busy={saving} onSubmit={async event => {
         event.preventDefault();
         const language = languages.find(option => option.id === languageId);
-        if (!title.trim() || !language) return;
-        onCreate(title.trim(), language);
+        if (saving || !title.trim() || !language) return;
+        if (!await onCreate(title.trim(), language)) return;
         dialogRef.current?.close();
         setTitle('');
         setLanguageId('');
@@ -49,6 +50,7 @@ export default function AddDictionaryModal({ dialogRef, languages, onCreate }: P
             type="text"
             placeholder="e.g. Everyday words"
             value={title}
+            disabled={saving}
             onChange={event => setTitle(event.target.value)}
             required
           />
@@ -60,7 +62,7 @@ export default function AddDictionaryModal({ dialogRef, languages, onCreate }: P
             name="language_id"
             value={languages.some(language => language.id === languageId) ? languageId : ''}
             onChange={event => setLanguageId(event.target.value)}
-            disabled={languages.length === 0}
+            disabled={saving || languages.length === 0}
             required
           >
             <option value="" disabled>{languages.length ? 'Choose a language' : 'No languages available'}</option>
